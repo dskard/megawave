@@ -10,18 +10,7 @@ A microwave oven simulator written in Go.
 - **just** - Task runner ([Installation](https://github.com/casey/just#installation))
 - **Docker** - Required for observability stack (optional)
 
-
 ## Quick Start
-
-```bash
-# Install dependencies
-just deps
-
-# Build and run in development mode (logs to megawave.log)
-just run
-```
-
-## Setup
 
 1. Clone the repository:
    ```bash
@@ -33,6 +22,11 @@ just run
    ```bash
    just deps
    ```
+
+3. Build and run in development mode (logs to megawave.log)
+    ```bash
+    just run
+    ```
 
 ## The microwave source
 
