@@ -22,9 +22,9 @@ formatters:
     gofmt:
       simplify: true
     goimports:
-      local-prefixes: github.com/dskard/megawave
+      local-prefixes:
+        - github.com/dskard/megawave
 
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
