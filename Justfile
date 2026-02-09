@@ -48,7 +48,7 @@ check: fmt lint test
 # Install development tools
 tools:
     go install golang.org/x/tools/cmd/goimports@latest
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
 
 # Start the Grafana observability stack
 grafana-up:

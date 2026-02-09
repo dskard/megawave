@@ -27,7 +27,7 @@ import (
 // Returns the logger and a cleanup function to close any open files.
 func NewLogger(cfg Config) (*slog.Logger, func() error) {
 	var handler slog.Handler
-	var cleanup func() error = func() error { return nil }
+	cleanup := func() error { return nil }
 	level := cfg.LogLevel
 
 	switch cfg.Environment {
