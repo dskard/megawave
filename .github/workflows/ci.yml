@@ -23,10 +23,48 @@ jobs:
       - name: Build
         run: just build
 
-      - name: Test
-        run: just test
+      - name: Test with coverage
+        run: just coverage
 
       - name: Lint
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.html
+
+      - name: Post coverage to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = fs.readFileSync('coverage.out', 'utf8');
+
+            // Parse coverage percentage from coverage.out
+            const lines = coverage.trim().split('\n');
+            const lastLine = lines[lines.length - 1];
+
+            // Run go tool cover to get percentage
+            const { execSync } = require('child_process');
+            const result = execSync('go tool cover -func=coverage.out | tail -1').toString();
+            const match = result.match(/(\d+\.\d+)%/);
+            const percentage = match ? match[1] : 'unknown';
+
+            const body = `## Test Coverage Report
+
+            **Total Coverage: ${percentage}%**
+
+            📊 [Download full coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts) (coverage.html)
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
