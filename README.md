@@ -42,6 +42,9 @@ just test
 
 # Run tests with coverage report
 just coverage
+
+# view coverage report
+open coverage.html
 ```
 
 #### Using go directly
@@ -53,6 +56,9 @@ go test -v ./...
 # Run tests with coverage
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out -o coverage.html
+
+# view coverage report
+open coverage.html
 ```
 
 ## Building and running the demo program
