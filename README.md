@@ -6,7 +6,7 @@ A microwave oven simulator written in Go.
 
 ## Prerequisites
 
-- **Go 1.22+** - [Download](https://go.dev/dl/)
+- **Go 1.25+** - [Download](https://go.dev/dl/)
 - **just** - Task runner ([Installation](https://github.com/casey/just#installation))
 - **Docker** - Required for observability stack (optional)
 
