@@ -39,7 +39,7 @@ internal/
 The main package handles:
 
 - **Configuration**: Parses flags and environment variables via `telemetry.ParseConfig()`
-- **Signal handling**: Sets up context cancellation on Ctrl-C
+- **Signal handling**: Sets up context cancellation on Ctrl-C (for testing)
 - **Terminal mode**: Uses raw mode to capture individual keypresses without Enter
 - **Event loop**: Routes keypresses to `PressDigit()` or `PressStart()`
 
@@ -86,6 +86,7 @@ Handles all observability configuration.
 **OTel Initialization:**
 - Creates trace exporter and provider
 - Creates log exporter and provider
+- Creates metric exporter and provider
 - Sets global providers
 - Returns combined shutdown function
 
@@ -148,7 +149,6 @@ Chosen over alternatives (config struct, builder pattern) because:
 `PressStart` accepts a context to allow:
 - Graceful shutdown on Ctrl-C
 - Proper trace context propagation
-- Future support for timeouts
 
 ### Mutex Strategy
 

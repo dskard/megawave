@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -16,7 +17,10 @@ import (
 )
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(),
+		os.Interrupt,    // Ctrl-C
+		syscall.SIGTERM, // kill command
+	)
 	defer cancel()
 
 	// Parse config (flags override env vars)
@@ -34,13 +38,13 @@ func main() {
 		defer func() {
 			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer shutdownCancel()
-			otelShutdown(shutdownCtx)
+			_ = otelShutdown(shutdownCtx)
 		}()
 	}
 
 	// Create logger based on config (returns cleanup function for file handle)
 	logger, closeLog := telemetry.NewLogger(cfg)
-	defer closeLog()
+	defer func() { _ = closeLog() }()
 
 	// Create microwave
 	m := microwave.New(
@@ -67,9 +71,9 @@ func printInstructions() {
 	fmt.Println("║         MEGAWAVE MICROWAVE             ║")
 	fmt.Println("╠════════════════════════════════════════╣")
 	fmt.Println("║  Controls:                             ║")
-	fmt.Println("║    0-9   : Enter time digits           ║")
-	fmt.Println("║    Enter : Start cooking               ║")
-	fmt.Println("║    Ctrl-C: Exit                        ║")
+	fmt.Println("║    0-9       : Enter time digits       ║")
+	fmt.Println("║    Enter     : Start cooking           ║")
+	fmt.Println("║    Ctrl-C    : Exit                    ║")
 	fmt.Println("╠════════════════════════════════════════╣")
 	fmt.Println("║  Display format: MM:SS                 ║")
 	fmt.Println("║  Example: Press 1,3,5 for 01:35        ║")
@@ -85,7 +89,7 @@ func runInteractive(ctx context.Context, cancel context.CancelFunc, m *microwave
 	if err != nil {
 		return fmt.Errorf("failed to set raw mode: %w", err)
 	}
-	defer term.Restore(int(os.Stdin.Fd()), oldState)
+	defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }()
 
 	// Channel to receive keypresses
 	keyChan := make(chan byte, 1)
@@ -102,8 +106,8 @@ func runInteractive(ctx context.Context, cancel context.CancelFunc, m *microwave
 			}
 			if n > 0 {
 				// In raw mode, Ctrl-C doesn't generate SIGINT, so we
-				// cancel the context here to interrupt cooking immediately
-				if buf[0] == 3 {
+				// cancel the context here to allow immediate interruption
+				if buf[0] == 3 { // Ctrl-C
 					cancel()
 				}
 				keyChan <- buf[0]

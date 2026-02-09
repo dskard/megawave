@@ -106,6 +106,8 @@ func (m *Microwave) IsCooking() bool {
 }
 
 // PressDigit handles a digit button press (0-9)
+// PressDigit does not accept negative integers or integers above 9.
+// PressDigit ignores digit button presses while the microwave is cooking.
 func (m *Microwave) PressDigit(d int) {
 	if d < 0 || d > 9 {
 		m.logger.Warn("invalid digit ignored", "digit", d)
@@ -125,16 +127,15 @@ func (m *Microwave) PressDigit(d int) {
 		)
 	}
 
+	// Don't allow pressing digits while cooking
 	if cooking {
 		m.logger.Warn("digit ignored while cooking", "digit", d)
 		return
 	}
 
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	// Only update display for first 4 digits
 	if m.digitCount >= 4 {
+		m.mu.Unlock()
 		m.logger.Warn("max digits reached, display not updated", "digit", d)
 		return
 	}
@@ -147,7 +148,10 @@ func (m *Microwave) PressDigit(d int) {
 	m.digitCount++
 
 	display := m.displayString()
-	m.logger.Debug("display updated", "display", display, "digitCount", m.digitCount)
+	digitCount := m.digitCount
+	m.mu.Unlock()
+
+	m.logger.Debug("display updated", "display", display, "digitCount", digitCount)
 	fmt.Print(display + "\r\n")
 }
 
@@ -172,7 +176,7 @@ func (m *Microwave) PressStart(ctx context.Context) {
 	}
 
 	if cooking {
-		m.logger.Warn("start ignored, already cooking")
+		m.logger.WarnContext(ctx, "start ignored, already cooking")
 		return
 	}
 
@@ -213,6 +217,7 @@ func (m *Microwave) PressStart(ctx context.Context) {
 	m.mu.Lock()
 	m.isCooking = false
 	// Reset state for next use
+	// countdown may not have completed, leaving a non-zero time in the digits
 	m.digits = [4]int{0, 0, 0, 0}
 	m.digitCount = 0
 	m.mu.Unlock()
@@ -233,6 +238,9 @@ func (m *Microwave) totalSeconds() int {
 }
 
 // countdown runs the cooking countdown. Returns true if completed, false if canceled.
+// I recognize that the assignment stated that the microwave could not be stopped
+// once started. This function allows for returning false for canceled for more
+// efficient testing of edge cases and use with a sample driver program.
 func (m *Microwave) countdown(ctx context.Context, seconds int) bool {
 	for seconds > 0 {
 		// Convert seconds back to display format
@@ -253,7 +261,7 @@ func (m *Microwave) countdown(ctx context.Context, seconds int) bool {
 			secs = secs + overflowMins*60
 		} else if overflowMins > 1 {
 			// Trouble
-			m.logger.WarnContext(ctx, "unexpected overflowMins", "overflowMins", overflowMins)
+			m.logger.WarnContext(ctx, "unexpected overflowMins > 1", "overflowMins", overflowMins)
 			mins = 99
 			secs = 99
 		}
@@ -286,5 +294,6 @@ func (m *Microwave) countdown(ctx context.Context, seconds int) bool {
 	display := m.displayString()
 	m.mu.Unlock()
 	fmt.Print(display + "\r\n")
+	m.logger.DebugContext(ctx, "tick", "display", display, "remaining", seconds)
 	return true
 }

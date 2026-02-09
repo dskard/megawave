@@ -11,10 +11,12 @@ import (
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
@@ -142,6 +144,22 @@ func InitOTel(ctx context.Context, cfg Config) (func(context.Context) error, err
 	)
 	global.SetLoggerProvider(lp)
 
+	// Create OTLP metric exporter
+	metricExporter, err := otlpmetrichttp.New(ctx,
+		otlpmetrichttp.WithEndpoint(endpoint),
+		otlpmetrichttp.WithInsecure(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metric exporter: %w", err)
+	}
+
+	// Create meter provider
+	mp := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter)),
+		sdkmetric.WithResource(res),
+	)
+	otel.SetMeterProvider(mp)
+
 	// Return combined shutdown
 	return func(ctx context.Context) error {
 		var errs []error
@@ -149,6 +167,9 @@ func InitOTel(ctx context.Context, cfg Config) (func(context.Context) error, err
 			errs = append(errs, err)
 		}
 		if err := lp.Shutdown(ctx); err != nil {
+			errs = append(errs, err)
+		}
+		if err := mp.Shutdown(ctx); err != nil {
 			errs = append(errs, err)
 		}
 		if len(errs) > 0 {

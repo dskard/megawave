@@ -14,6 +14,13 @@ Megawave uses OpenTelemetry to export telemetry data:
 
 ## Quick Start
 
+### Prerequisites
+
+- Docker installed and running
+- megawave built (`just build`)
+
+### Steps
+
 ```bash
 # Start the Grafana observability stack
 just grafana-up
@@ -21,7 +28,7 @@ just grafana-up
 # Run megawave in production mode
 just run-prod
 
-# Interact with the microwave, then Ctrl-C to exit
+# Interact with the microwave (press digits, start cooking), then Ctrl-C to exit
 
 # View telemetry in Grafana
 open http://localhost:3000
@@ -148,22 +155,60 @@ rate(microwave_cooking_sessions_total[5m])
 
 ## Creating Dashboards
 
-### Example Dashboard Panels
+Dashboards let you visualize multiple metrics, logs, and traces in one view.
 
-**Button Press Rate:**
-```promql
-rate(microwave_button_presses_total[1m])
-```
+### Creating Your First Dashboard
 
-**Cooking Sessions:**
-```promql
-increase(microwave_cooking_sessions_total[1h])
-```
+1. Open Grafana at http://localhost:3000
+2. In the left sidebar, click the **Dashboards** icon (four squares)
+3. Click the **New** button in the top right
+4. Select **New dashboard** from the dropdown
 
-**Recent Logs:**
-```logql
-{service_name="megawave"} | json
-```
+### Adding a Panel
+
+1. On the new dashboard, click **Add visualization**
+2. Select a data source:
+   - **Prometheus** for metrics
+   - **Loki** for logs
+   - **Tempo** for traces
+3. Enter your query in the query editor (see examples below)
+4. The visualization preview updates automatically
+5. (Optional) Change the visualization type using the dropdown in the top right of the panel editor (Time series, Stat, Table, etc.)
+6. (Optional) Set a panel title in the right sidebar under **Panel options**
+7. Click **Apply** in the top right to add the panel to the dashboard
+
+### Saving the Dashboard
+
+1. Click the **Save** icon (floppy disk) in the top right
+2. Enter a dashboard name (e.g., "Megawave")
+3. Click **Save**
+
+### Example Panels
+
+**Button Press Rate (Time series):**
+- Data source: Prometheus
+- Query:
+  ```promql
+  rate(microwave_button_presses_total[1m])
+  ```
+
+**Total Cooking Sessions (Stat):**
+- Data source: Prometheus
+- Query:
+  ```promql
+  increase(microwave_cooking_sessions_total[1h])
+  ```
+
+**Recent Logs (Logs):**
+- Data source: Loki
+- Query:
+  ```logql
+  {service_name="megawave"} | json
+  ```
+
+### Adding More Panels
+
+After saving, click **Add** in the top toolbar and select **Visualization** to add more panels to your dashboard.
 
 ## Troubleshooting
 
@@ -201,18 +246,18 @@ If you see schema URL conflicts, ensure you're using compatible OTel SDK version
 │  - metrics  │                         ┌───────────────────┼───────────────────┐
 └─────────────┘                         │                   │                   │
                                         v                   v                   v
-                                 ┌──────────┐        ┌──────────┐        ┌────────────┐
-                                 │   Loki   │        │  Tempo   │        │ Prometheus │
-                                 │  (logs)  │        │ (traces) │        │ (metrics)  │
-                                 └────┬─────┘        └────┬─────┘        └─────┬──────┘
-                                      │                   │                    │
-                                      └───────────────────┼────────────────────┘
-                                                          │
-                                                          v
-                                                   ┌──────────┐
-                                                   │ Grafana  │
-                                                   │  :3000   │
-                                                   └──────────┘
+                                   ┌──────────┐        ┌──────────┐        ┌────────────┐
+                                   │   Loki   │        │  Tempo   │        │ Prometheus │
+                                   │  (logs)  │        │ (traces) │        │ (metrics)  │
+                                   └────┬─────┘        └────┬─────┘        └─────┬──────┘
+                                        │                   │                    │
+                                        └───────────────────┼────────────────────┘
+                                                            │
+                                                            v
+                                                       ┌──────────┐
+                                                       │ Grafana  │
+                                                       │  :3000   │
+                                                       └──────────┘
 ```
 
 ## Cleanup
